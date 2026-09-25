@@ -3,37 +3,32 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"net/url"
-	"os"
 )
 
-func redirectHandler(w http.ResponseWriter, r *http.Request) {
-	target := r.URL.Query().Get("url")
-	if target == "" {
-		fmt.Fprintf(w, "Provide a ?url= parameter.")
-		return
-	}
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintln(w, `
+		<html>
+			<head>
+				<title>Go DAST Demo</title>
+			</head>
+			<body>
+				<h1>Hello from Go!</h1>
+				<p>Application is running securely.</p>
+			</body>
+		</html>
+	`)
+}
 
-	isSecure := os.Getenv("SECURE_MODE") == "true"
-
-	if isSecure {
-		
-		parsedURL, err := url.Parse(target)
-		if err != nil || parsedURL.IsAbs() {
-			http.Error(w, "External redirects are forbidden!", http.StatusBadRequest)
-			return
-		}
-		http.Redirect(w, r, target, http.StatusFound)
-	} else {
-		
-		http.Redirect(w, r, target, http.StatusFound)
-	}
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "OK")
 }
 
 func main() {
-	http.HandleFunc("/redirect", redirectHandler)
-	fmt.Println("Server starting on port 8080...")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		panic(err)
-	}
+	http.HandleFunc("/", homeHandler)
+	http.HandleFunc("/health", healthHandler)
+
+	fmt.Println("Server running on :8080")
+	http.ListenAndServe(":8080", nil)
 }
